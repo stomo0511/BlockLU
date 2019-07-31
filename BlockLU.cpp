@@ -69,7 +69,24 @@ int main(const int argc, const char **argv)
 
 	double timer = omp_get_wtime();
 
-	LAPACKE_dgetrf( MKL_COL_MAJOR, m, n, A, m, ipiv );
+	for (int i=0; i<n; i+=nb)
+	{
+		int ib = min(n-i,nb);
+
+		LAPACKE_dgetrf2(MKL_COL_MAJOR, m-i, ib, A+(i+i*m), m, ipiv+i);
+
+		// Apply interchanges to columns 0:i
+		LAPACKE_dlaswp(MKL_COL_MAJOR, i, A, m, i, i+ib, ipiv, 1);
+
+		if (i+ib < n)
+		{
+			// Apply interchanges to columns i+ib:n-1
+			LAPACKE_dlaswp(MKL_COL_MAJOR, n-i-ib, A+((i+ib)*m), m, i, i+ib, ipiv, 1);
+
+			//
+//			LAPACKE_
+		}
+	}
 
 	timer = omp_get_wtime() - timer;
 
