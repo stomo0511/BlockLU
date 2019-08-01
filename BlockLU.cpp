@@ -60,7 +60,7 @@ int main(const int argc, const char **argv)
 
 	double *A = new double[m*n];   // Original matrix
 	double *b = new double[m];     // Right-hand vector
-	int *ipiv = new int[m];          // permutation vector
+	int *piv = new int[m];           // permutation vector
 
 	Gen_rand_mat(m,n,A);             // Randomize elements of orig. matrix
 //	Show_mat(m,n,A);
@@ -73,18 +73,26 @@ int main(const int argc, const char **argv)
 	{
 		int ib = min(n-i,nb);
 
-		LAPACKE_dgetrf2(MKL_COL_MAJOR, m-i, ib, A+(i+i*m), m, ipiv+i);
+		int info = LAPACKE_dgetrf2(MKL_COL_MAJOR, m-i, ib, A+(i+i*m), m, piv+i);
+		assert(info==0);
+		for (int k=i; k<min(m,i+ib); k++)
+			piv[k] += i;
 
 		// Apply interchanges to columns 0:i
-		LAPACKE_dlaswp(MKL_COL_MAJOR, i, A, m, i, i+ib, ipiv, 1);
+		LAPACKE_dlaswp(MKL_COL_MAJOR, i, A, m, i, i+ib, piv, 1);
 
 		if (i+ib < n)
 		{
 			// Apply interchanges to columns i+ib:n-1
-			LAPACKE_dlaswp(MKL_COL_MAJOR, n-i-ib, A+((i+ib)*m), m, i, i+ib, ipiv, 1);
+			LAPACKE_dlaswp(MKL_COL_MAJOR, n-i-ib, A+((i+ib)*m), m, i, i+ib, piv, 1);
 
-			//
-//			LAPACKE_
+			// Compute block row of U
+			cblas_dtrsm(CblasColMajor,CblasLeft,CblasLower,CblasNoTrans,CblasUnit,
+					ib, n-i-ib, 1.0, A+(i+i*m), m, A+(i+(i+ib)*m), m);
+
+			// Update trailing submatrix
+			if (i+ib < m)
+				cblas_dgemm();
 		}
 	}
 
@@ -95,7 +103,7 @@ int main(const int argc, const char **argv)
 
 	delete [] A;
 	delete [] b;
-	delete [] ipiv;
+	delete [] piv;
 
 	return EXIT_SUCCESS;
 }
