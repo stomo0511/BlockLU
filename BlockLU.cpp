@@ -87,18 +87,19 @@ int main(const int argc, const char **argv)
 			LAPACKE_dlaswp(MKL_COL_MAJOR, n-i-ib, A+((i+ib)*m), m, i, i+ib, piv, 1);
 
 			// Compute block row of U
-			cblas_dtrsm(CblasColMajor,CblasLeft,CblasLower,CblasNoTrans,CblasUnit,
+			cblas_dtrsm(CblasColMajor, CblasLeft, CblasLower, CblasNoTrans, CblasUnit,
 					ib, n-i-ib, 1.0, A+(i+i*m), m, A+(i+(i+ib)*m), m);
 
 			// Update trailing submatrix
 			if (i+ib < m)
-				cblas_dgemm();
+				cblas_dgemm(CblasColMajor, CblasNoTrans, CblasNoTrans,
+						m-i-ib, n-i-ib, ib, -1.0, A+(i+ib+i*m), m, A+(i+(i+ib)*m), m, 1.0, A+(i+ib+(i+ib)*m), m);
 		}
 	}
 
 	timer = omp_get_wtime() - timer;
 
-//	Show_mat(m,n,A);
+	Show_mat(m,n,A);
 	cout << "m = " << m << ", n = " << n << ", time = " << timer << endl;
 
 	delete [] A;
