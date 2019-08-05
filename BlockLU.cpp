@@ -71,6 +71,8 @@ int main(const int argc, const char **argv)
 
 	for (int i=0; i<n; i+=nb)
 	{
+		cout << "i = " << i << endl;
+
 		int ib = min(n-i,nb);
 
 		int info = LAPACKE_dgetrf2(MKL_COL_MAJOR, m-i, ib, A+(i+i*m), m, piv+i);
@@ -85,6 +87,7 @@ int main(const int argc, const char **argv)
 		{
 			// Apply interchanges to columns i+ib:n-1
 			LAPACKE_dlaswp(MKL_COL_MAJOR, n-i-ib, A+((i+ib)*m), m, i, i+ib, piv, 1);
+			cout << "n-i-ib = " << n-i-ib << ", i+ib = " << i+ib << endl;
 
 			// Compute block row of U
 			cblas_dtrsm(CblasColMajor, CblasLeft, CblasLower, CblasNoTrans, CblasUnit,
