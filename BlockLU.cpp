@@ -73,7 +73,7 @@ int main(const int argc, const char **argv)
 
 	timer = omp_get_wtime() - timer;
 
-//	Show_mat(m,n,A);
+	Show_mat(m,n,A);
 	cout << "m = " << m << ", n = " << n << ", time = " << timer << endl;
 
 	delete [] A;
