@@ -79,12 +79,14 @@ int main(const int argc, const char **argv)
 			piv[k] += i;
 
 		// Apply interchanges to columns 0:i
-		LAPACKE_dlaswp(MKL_COL_MAJOR, i, A, m, i, i+ib, piv, 1);
+		info = LAPACKE_dlaswp(MKL_COL_MAJOR, i, A, m, i, i+ib, piv, 1);
+		assert(info==0);
 
 		if (i+ib < n)
 		{
 			// Apply interchanges to columns i+ib:n-1
-			LAPACKE_dlaswp(MKL_COL_MAJOR, n-i-ib, A+((i+ib)*m), m, i, i+ib, piv, 1);
+			info = LAPACKE_dlaswp(MKL_COL_MAJOR, n-i-ib, A+((i+ib)*m), m, i, i+ib, piv, 1);
+			assert(info==0);
 
 			// Compute block row of U
 			cblas_dtrsm(CblasColMajor,CblasLeft,CblasLower,CblasNoTrans,CblasUnit,
@@ -92,7 +94,8 @@ int main(const int argc, const char **argv)
 
 			// Update trailing submatrix
 			if (i+ib < m)
-				cblas_dgemm();
+				cblas_dgemm(CblasColMajor, CblasNoTrans, CblasNoTrans,
+						m-i-ib, n-i-ib, ib, -1.0, A+(i+ib+i*m), m, A+(i+(i+ib)*m), m, 1.0, A+(i+ib+(i+ib)*m), m);
 		}
 	}
 
