@@ -50,6 +50,10 @@ void Copy_mat(const int m, const int n, double *A, double *B)
 // Debug mode
 //#define DEBUG
 
+extern void trace_cpu_start();
+extern void trace_cpu_stop(const char *color);
+extern void trace_label(const char *color, const char *label);
+
 int main(const int argc, const char **argv)
 {
 	// Usage "a.out [size of matrix: m n ] [block width]"
@@ -80,15 +84,30 @@ int main(const int argc, const char **argv)
 	{
 		int ib = min(n-i,nb);
 
-		int info = LAPACKE_dgetrf2(MKL_COL_MAJOR, m-i, ib, A+(i+i*m), m, piv+i);
-		assert(info==0);
+		{
+			trace_cpu_start();
+			trace_label("Red", "GETRF2");
 
-		for (int k=i; k<min(m,i+ib); k++)
-			piv[k] += i;
+			int info = LAPACKE_dgetrf2(MKL_COL_MAJOR, m-i, ib, A+(i+i*m), m, piv+i);
+			assert(info==0);
 
-		// Apply interchanges to columns 0:i
-		info = LAPACKE_dlaswp(MKL_COL_MAJOR, i, A, m, i+1, i+ib, piv, 1);
-		assert(info==0);
+			for (int k=i; k<min(m,i+ib); k++)
+				piv[k] += i;
+
+			trace_cpu_stop("Red");
+		}
+
+
+		{
+			trace_cpu_start();
+			trace_label("Aqua", "LASWP1");
+
+			// Apply interchanges to columns 0:i
+			int info = LAPACKE_dlaswp(MKL_COL_MAJOR, i, A, m, i+1, i+ib, piv, 1);
+			assert(info==0);
+
+			trace_cpu_stop("Aqua");
+		}
 
 		if (i+ib < n)
 		{
@@ -97,18 +116,37 @@ int main(const int argc, const char **argv)
 			{
 				int jb = min(n-j,nb);
 
-				// Apply interchanges to columns i+ib:n-1
-				info = LAPACKE_dlaswp(MKL_COL_MAJOR, jb, A+(j*m), m, i+1, i+ib, piv, 1);
-				assert(info==0);
+				{
+					trace_cpu_start();
+					trace_label("LightCyan", "LASWP2");
 
-				// Compute block row of U
-				cblas_dtrsm(CblasColMajor, CblasLeft, CblasLower, CblasNoTrans, CblasUnit,
-						ib, jb, 1.0, A+(i+i*m), m, A+(i+j*m), m);
+					// Apply interchanges to columns i+ib:n-1
+					int info = LAPACKE_dlaswp(MKL_COL_MAJOR, jb, A+(j*m), m, i+1, i+ib, piv, 1);
+					assert(info==0);
+
+					trace_cpu_stop("LightCyan");
+				}
+
+				{
+					trace_cpu_start();
+					trace_label("Green", "TRSM");
+
+					// Compute block row of U
+					cblas_dtrsm(CblasColMajor, CblasLeft, CblasLower, CblasNoTrans, CblasUnit,
+							ib, jb, 1.0, A+(i+i*m), m, A+(i+j*m), m);
+
+					trace_cpu_stop("Green");
+				}
 
 				// Update trailing submatrix
 				if (i+ib < m) {
+					trace_cpu_start();
+					trace_label("Blue", "GEMM");
+
 					cblas_dgemm(CblasColMajor, CblasNoTrans, CblasNoTrans,
 							m-i-ib, jb, ib, -1.0, A+(i+ib+i*m), m, A+(i+j*m), m, 1.0, A+(i+ib+j*m), m);
+
+					trace_cpu_stop("Blue");
 				}
 			}
 		}
