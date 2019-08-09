@@ -39,14 +39,6 @@ void Show_mat(const int m, const int n, double *A)
 	cout << endl;
 }
 
-// Set all the elements of vector as Val
-void Set_vec_elements(const int m, double *b, const double Val)
-{
-//	#pragma omp parallel for
-	for (int i=0; i<m; i++)
-		b[i] = Val;
-}
-
 // Copy matrix elements from A to B
 void Copy_mat(const int m, const int n, double *A, double *B)
 {
@@ -70,11 +62,9 @@ int main(const int argc, const char **argv)
 	assert(nb <= n);
 
 	double *A = new double[m*n];     // Original matrix
-	double *b = new double[m];       // Right-hand vector
 	int *piv = new int[m];           // permutation vector
 
 	Gen_rand_mat(m,n,A);             // Randomize elements of orig. matrix
-	Set_vec_elements(m,b,1.0);       // Set all the elements of vec. b as 1.0
 
 	////////// Debug mode //////////
 	#ifdef DEBUG
@@ -82,9 +72,7 @@ int main(const int argc, const char **argv)
 	Copy_mat(m,n,A,OA);
 	double *U = new double[m*n];
 	#endif
-
-	cout << "A : \n";
-	Show_mat(m,n,A);
+	////////// Debug mode //////////
 
 	double timer = omp_get_wtime();
 
@@ -122,14 +110,7 @@ int main(const int argc, const char **argv)
 
 	timer = omp_get_wtime() - timer;
 
-	cout << "Result : \n";
-	Show_mat(m,n,A);
-//	cout << "m = " << m << ", n = " << n << ", time = " << timer << endl;
-
-	cout << "piv : \n";
-	for (int i=0; i<m; i++)
-		cout << piv[i] << ", ";
-	cout << endl;
+	cout << "m = " << m << ", n = " << n << ", time = " << timer << endl;
 
 	////////// Debug mode //////////
 	#ifdef DEBUG
@@ -137,27 +118,19 @@ int main(const int argc, const char **argv)
 		for (int j=0; j<n; j++)
 			U[i+j*m] = (j<i) ? 0.0 : A[i+j*m];
 
-//	cout << "U : \n";
-//	Show_mat(m,n,U);
-
 	cblas_dtrmm(CblasColMajor, CblasLeft, CblasLower, CblasNoTrans, CblasUnit,
 			m, n, 1.0, A, m, U, m);
 
-	cout << "L*U : \n";
-	Show_mat(m,n,U);
-
-	// Apply interchanges to columns 0:i
-	int info = LAPACKE_dlaswp(MKL_COL_MAJOR, n, U, m, 1, n, piv, 1);
+	// Apply interchanges to matrix A
+	int info = LAPACKE_dlaswp(MKL_COL_MAJOR, n, OA, m, 1, n, piv, 1);
 	assert(info==0);
-
-	cout << "P*L*U : \n";
-	Show_mat(m,n,U);
 
 	double tmp = 0.0;
 	for (int i=0; i<m*n; i++)
 		tmp += (OA[i] - U[i])*(OA[i] - U[i]);
 
-	cout << "|| A - LU ||_2 = " << sqrt(tmp) << endl;
+	cout << "Debug mode: \n";
+	cout << "|| PA - LU ||_2 = " << sqrt(tmp) << endl;
 
 	delete [] OA;
 	delete [] U;
@@ -165,7 +138,6 @@ int main(const int argc, const char **argv)
 	////////// Debug mode //////////
 
 	delete [] A;
-	delete [] b;
 	delete [] piv;
 
 	return EXIT_SUCCESS;
