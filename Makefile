@@ -7,7 +7,7 @@ MKL_INC_DIR = $(MKL_ROOT)/include
 MKL_LIB_DIR = $(MKL_ROOT)/lib
 MKL_LIBS = -lmkl_intel_lp64 -lmkl_core -lmkl_sequential
 
-OBJS =		BlockLU.o trace.o
+OBJS =		BlockLU.o
 
 TARGET =	BlockLU
 
