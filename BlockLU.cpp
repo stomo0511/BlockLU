@@ -39,14 +39,6 @@ void Show_mat(const int m, const int n, double *A)
 	cout << endl;
 }
 
-// Set all the elements of vector as Val
-void Set_vec_elements(const int m, double *b, const double Val)
-{
-//	#pragma omp parallel for
-	for (int i=0; i<m; i++)
-		b[i] = Val;
-}
-
 int main(const int argc, const char **argv)
 {
 	// Usage "a.out [size of matrix: m n ] [block width]"
@@ -59,26 +51,27 @@ int main(const int argc, const char **argv)
 	assert(nb <= n);
 
 	double *A = new double[m*n];   // Original matrix
-	double *b = new double[m];     // Right-hand vector
-	int *ipiv = new int[m];          // permutation vector
+	int *piv = new int[m];          // permutation vector
 
 	Gen_rand_mat(m,n,A);             // Randomize elements of orig. matrix
-//	Show_mat(m,n,A);
-
-	Set_vec_elements(m,b,1.0);       // Set all the elements of vec. b as 1.0
+	Show_mat(m,n,A);
 
 	double timer = omp_get_wtime();
 
-	LAPACKE_dgetrf( MKL_COL_MAJOR, m, n, A, m, ipiv );
+	LAPACKE_dgetrf( MKL_COL_MAJOR, m, n, A, m, piv );
 
 	timer = omp_get_wtime() - timer;
+
+	cout << "piv :\n";
+	for (int i=0; i<m; i++)
+		cout << piv[i] << ", ";
+	cout << endl;
 
 	Show_mat(m,n,A);
 	cout << "m = " << m << ", n = " << n << ", time = " << timer << endl;
 
 	delete [] A;
-	delete [] b;
-	delete [] ipiv;
+	delete [] piv;
 
 	return EXIT_SUCCESS;
 }
