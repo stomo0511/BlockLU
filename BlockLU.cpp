@@ -48,7 +48,7 @@ void Copy_mat(const int m, const int n, double *A, double *B)
 }
 
 // Debug mode
-//#define DEBUG
+#define DEBUG
 
 int main(const int argc, const char **argv)
 {
@@ -92,18 +92,23 @@ int main(const int argc, const char **argv)
 
 		if (i+ib < n)
 		{
-			// Apply interchanges to columns i+ib:n-1
-			info = LAPACKE_dlaswp(MKL_COL_MAJOR, n-i-ib, A+((i+ib)*m), m, i+1, i+ib, piv, 1);
-			assert(info==0);
+			for (int j=i+ib; j<n; j+=ib)
+			{
+				int jb = min(n-j,nb);
 
-			// Compute block row of U
-			cblas_dtrsm(CblasColMajor, CblasLeft, CblasLower, CblasNoTrans, CblasUnit,
-					ib, n-i-ib, 1.0, A+(i+i*m), m, A+(i+(i+ib)*m), m);
+				// Apply interchanges to columns i+ib:n-1
+				info = LAPACKE_dlaswp(MKL_COL_MAJOR, jb, A+(j*m), m, i+1, i+ib, piv, 1);
+				assert(info==0);
 
-			// Update trailing submatrix
-			if (i+ib < m) {
-				cblas_dgemm(CblasColMajor, CblasNoTrans, CblasNoTrans,
-						m-i-ib, n-i-ib, ib, -1.0, A+(i+ib+i*m), m, A+(i+(i+ib)*m), m, 1.0, A+(i+ib+(i+ib)*m), m);
+				// Compute block row of U
+				cblas_dtrsm(CblasColMajor, CblasLeft, CblasLower, CblasNoTrans, CblasUnit,
+						ib, jb, 1.0, A+(i+i*m), m, A+(i+j*m), m);
+
+				// Update trailing submatrix
+				if (i+ib < m) {
+					cblas_dgemm(CblasColMajor, CblasNoTrans, CblasNoTrans,
+							m-i-ib, jb, ib, -1.0, A+(i+ib+i*m), m, A+(i+j*m), m, 1.0, A+(i+ib+j*m), m);
+				}
 			}
 		}
 	}
