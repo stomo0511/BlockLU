@@ -1,5 +1,5 @@
 //============================================================================
-// Name        : 04_BlockLU.cpp
+// Name        : BlockLU.cpp
 // Author      : Tomo Suzuki
 // Version     :
 // Copyright   : Your copyright notice
@@ -47,6 +47,17 @@ void Set_vec_elements(const int m, double *b, const double Val)
 		b[i] = Val;
 }
 
+// Copy matrix elements from A to B
+void Copy_mat(const int m, const int n, double *A, double *B)
+{
+//	#pragma omp for
+	for (int i=0; i<m*n; i++)
+		B[i] = A[i];
+}
+
+// Debug mode
+#define DEBUG
+
 int main(const int argc, const char **argv)
 {
 	// Usage "a.out [size of matrix: m n ] [block width]"
@@ -65,6 +76,15 @@ int main(const int argc, const char **argv)
 	Gen_rand_mat(m,n,A);             // Randomize elements of orig. matrix
 	Set_vec_elements(m,b,1.0);       // Set all the elements of vec. b as 1.0
 
+	#ifdef DEBUG
+	double *OA = new double[m*n];
+	Copy_mat(m,n,A,OA);
+	double *U = new double[m*n];
+	#endif
+
+	cout << "A : \n";
+	Show_mat(m,n,A);
+
 	double timer = omp_get_wtime();
 
 	for (int i=0; i<n; i+=nb)
@@ -73,6 +93,7 @@ int main(const int argc, const char **argv)
 
 		int info = LAPACKE_dgetrf2(MKL_COL_MAJOR, m-i, ib, A+(i+i*m), m, piv+i);
 		assert(info==0);
+
 		for (int k=i; k<min(m,i+ib); k++)
 			piv[k] += i;
 
@@ -100,8 +121,35 @@ int main(const int argc, const char **argv)
 
 	timer = omp_get_wtime() - timer;
 
-//	Show_mat(m,n,A);
+	cout << "Result : \n";
+	Show_mat(m,n,A);
 	cout << "m = " << m << ", n = " << n << ", time = " << timer << endl;
+
+	////////// Debug routine //////////
+	#ifdef DEBUG
+	for (int i=0; i<m; i++)
+		for (int j=0; j<n; j++)
+			U[i+j*m] = (j<i) ? 0.0 : A[i+j*m];
+
+	cout << "U : \n";
+	Show_mat(m,n,U);
+
+	cblas_dtrmm(CblasColMajor, CblasLeft, CblasLower, CblasNoTrans, CblasUnit,
+			m, n, 1.0, A, m, U, m);
+
+	cout << "L*U : \n";
+	Show_mat(m,n,U);
+
+	double tmp = 0.0;
+	for (int i=0; i<m*n; i++)
+		tmp += (OA[i] - U[i])*(OA[i] - U[i]);
+
+	cout << "|| A - LU ||_2 = " << sqrt(tmp) << endl;
+
+	delete [] OA;
+	delete [] U;
+	#endif
+	////////// Debug routine //////////
 
 	delete [] A;
 	delete [] b;
