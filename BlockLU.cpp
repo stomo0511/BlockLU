@@ -48,7 +48,7 @@ void Copy_mat(const int m, const int n, double *A, double *B)
 }
 
 // Debug mode
-#define DEBUG
+//#define DEBUG
 
 int main(const int argc, const char **argv)
 {
@@ -92,6 +92,7 @@ int main(const int argc, const char **argv)
 
 		if (i+ib < n)
 		{
+			#pragma omp parallel for
 			for (int j=i+ib; j<n; j+=ib)
 			{
 				int jb = min(n-j,nb);
