@@ -39,13 +39,16 @@ void Show_mat(const int m, const int n, double *A)
 	cout << endl;
 }
 
-// Set all the elements of vector as Val
-void Set_vec_elements(const int m, double *b, const double Val)
+// Copy matrix elements from A to B
+void Copy_mat(const int m, const int n, double *A, double *B)
 {
-//	#pragma omp parallel for
-	for (int i=0; i<m; i++)
-		b[i] = Val;
+//	#pragma omp for
+	for (int i=0; i<m*n; i++)
+		B[i] = A[i];
 }
+
+// Debug mode
+//#define DEBUG
 
 int main(const int argc, const char **argv)
 {
@@ -58,12 +61,17 @@ int main(const int argc, const char **argv)
 	assert(m >= n);
 	assert(nb <= n);
 
-	double *A = new double[m*n];   // Original matrix
-	double *b = new double[m];     // Right-hand vector
+	double *A = new double[m*n];     // Original matrix
 	int *piv = new int[m];           // permutation vector
 
 	Gen_rand_mat(m,n,A);             // Randomize elements of orig. matrix
-	Set_vec_elements(m,b,1.0);       // Set all the elements of vec. b as 1.0
+
+	////////// Debug mode //////////
+	#ifdef DEBUG
+	double *OA = new double[m*n];
+	Copy_mat(m,n,A,OA);
+	double *U = new double[m*n];
+	#endif
 
 	//	Show_mat(m,n,A);
 
@@ -103,8 +111,32 @@ int main(const int argc, const char **argv)
 //	Show_mat(m,n,A);
 	cout << "m = " << m << ", n = " << n << ", time = " << timer << endl;
 
+	////////// Debug mode //////////
+	#ifdef DEBUG
+	for (int i=0; i<m; i++)
+		for (int j=0; j<n; j++)
+			U[i+j*m] = (j<i) ? 0.0 : A[i+j*m];
+
+	cblas_dtrmm(CblasColMajor, CblasLeft, CblasLower, CblasNoTrans, CblasUnit,
+			m, n, 1.0, A, m, U, m);
+
+	// Apply interchanges to matrix A
+	int info = LAPACKE_dlaswp(MKL_COL_MAJOR, n, OA, m, 1, n, piv, 1);
+	assert(info==0);
+
+	double tmp = 0.0;
+	for (int i=0; i<m*n; i++)
+		tmp += (OA[i] - U[i])*(OA[i] - U[i]);
+
+	cout << "Debug mode: \n";
+	cout << "|| PA - LU ||_2 = " << sqrt(tmp) << endl;
+
+	delete [] OA;
+	delete [] U;
+	#endif
+	////////// Debug mode //////////
+
 	delete [] A;
-	delete [] b;
 	delete [] piv;
 
 	return EXIT_SUCCESS;
