@@ -76,6 +76,7 @@ int main(const int argc, const char **argv)
 	Gen_rand_mat(m,n,A);             // Randomize elements of orig. matrix
 	Set_vec_elements(m,b,1.0);       // Set all the elements of vec. b as 1.0
 
+	////////// Debug mode //////////
 	#ifdef DEBUG
 	double *OA = new double[m*n];
 	Copy_mat(m,n,A,OA);
@@ -123,21 +124,33 @@ int main(const int argc, const char **argv)
 
 	cout << "Result : \n";
 	Show_mat(m,n,A);
-	cout << "m = " << m << ", n = " << n << ", time = " << timer << endl;
+//	cout << "m = " << m << ", n = " << n << ", time = " << timer << endl;
 
-	////////// Debug routine //////////
+	cout << "piv : \n";
+	for (int i=0; i<m; i++)
+		cout << piv[i] << ", ";
+	cout << endl;
+
+	////////// Debug mode //////////
 	#ifdef DEBUG
 	for (int i=0; i<m; i++)
 		for (int j=0; j<n; j++)
 			U[i+j*m] = (j<i) ? 0.0 : A[i+j*m];
 
-	cout << "U : \n";
-	Show_mat(m,n,U);
+//	cout << "U : \n";
+//	Show_mat(m,n,U);
 
 	cblas_dtrmm(CblasColMajor, CblasLeft, CblasLower, CblasNoTrans, CblasUnit,
 			m, n, 1.0, A, m, U, m);
 
 	cout << "L*U : \n";
+	Show_mat(m,n,U);
+
+	// Apply interchanges to columns 0:i
+	int info = LAPACKE_dlaswp(MKL_COL_MAJOR, n, U, m, 1, n, piv, 1);
+	assert(info==0);
+
+	cout << "P*L*U : \n";
 	Show_mat(m,n,U);
 
 	double tmp = 0.0;
@@ -149,7 +162,7 @@ int main(const int argc, const char **argv)
 	delete [] OA;
 	delete [] U;
 	#endif
-	////////// Debug routine //////////
+	////////// Debug mode //////////
 
 	delete [] A;
 	delete [] b;
