@@ -48,7 +48,7 @@ void Copy_mat(const int m, const int n, double *A, double *B)
 }
 
 // Debug mode
-#define DEBUG
+//#define DEBUG
 
 int main(const int argc, const char **argv)
 {
@@ -75,7 +75,7 @@ int main(const int argc, const char **argv)
 
 	double timer = omp_get_wtime();
 
-	LAPACKE_dgetrf( MKL_COL_MAJOR, m, n, A, m, piv );
+	LAPACKE_dgetrf2( MKL_COL_MAJOR, m, n, A, m, piv );
 
 	timer = omp_get_wtime() - timer;
 
