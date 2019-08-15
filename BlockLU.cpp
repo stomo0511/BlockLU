@@ -75,13 +75,17 @@ int main(const int argc, const char **argv)
 	assert(m >= n);
 	assert(nb <= n);
 
-	double *A = new double[m*n];     // Original matrix
-	int *piv = new int[m];           // permutation vector
-
-	// Dependency checker
-	int *dep = new int[n];
+	double *A = new double [m*n];  // Original matrix
+	int *piv = new int [m];          // permutation vector
 
 	Gen_rand_mat(m,n,A);             // Randomize elements of orig. matrix
+
+	// Dependency checker
+	const int p = (m % nb == 0) ? m / nb : m / nb +1;
+	const int q = (n % nb == 0) ? n / nb : n / nb +1;
+	int **dep = new int* [p];
+	for (int i=0; i<p; i++)
+		dep[i] = new int [q];
 
 	////////// Debug mode //////////
 	#ifdef DEBUG
@@ -91,7 +95,7 @@ int main(const int argc, const char **argv)
 	#endif
 	////////// Debug mode //////////
 
-	double timer = omp_get_wtime();
+	double timer = omp_get_wtime();   // Timer start
 
 	#pragma omp parallel
 	{
@@ -101,19 +105,18 @@ int main(const int argc, const char **argv)
 			{
 				int ib = min(n-i,nb);
 
-				#pragma omp task depend(inout: dep[i:ib]) depend(out: piv[i:ib])
+				#pragma omp task depend(inout: dep[i/nb:p-i/nb][i/nb]) depend(out: piv[i:ib])
 				{
-//					int info = LAPACKE_dgetrf2(MKL_COL_MAJOR, m-i, ib, A+(i+i*m), m, piv+i);
-
-					int info;
-					My_dgetrf2(m-i,ib,A+(i+i*m), m, piv+i, &info);
+					int info = LAPACKE_dgetrf2(MKL_COL_MAJOR, m-i, ib, A+(i+i*m), m, piv+i);
+//					int info;
+//					My_dgetrf2(m-i,ib,A+(i+i*m), m, piv+i, &info);
 					assert(info==0);
 
 					for (int k=i; k<min(m,i+ib); k++)
 						piv[k] += i;
 				}
 
-				#pragma omp task depend(out: dep[0:i]) depend(in: piv[i:ib])
+				#pragma omp task depend(out: dep[i/nb:1][0:i/nb]) depend(in: piv[i:ib])
 				{
 					// Apply interchanges to columns 0:i
 					int info = LAPACKE_dlaswp(MKL_COL_MAJOR, i, A, m, i+1, i+ib, piv, 1);
@@ -156,7 +159,7 @@ int main(const int argc, const char **argv)
 		} // End of single region
 	} // End of parallel region
 
-	timer = omp_get_wtime() - timer;
+	timer = omp_get_wtime() - timer;   // Timer stop
 
 	cout << "m = " << m << ", n = " << n << ", time = " << timer << endl;
 
@@ -187,6 +190,10 @@ int main(const int argc, const char **argv)
 
 	delete [] A;
 	delete [] piv;
+
+	for (int i=0; i<p; i++)
+		delete [] dep[i];
+	delete [] dep;
 
 	return EXIT_SUCCESS;
 }
