@@ -47,6 +47,14 @@ void Copy_mat(const int m, const int n, double *A, double *B)
 		B[i] = A[i];
 }
 
+// my_dgetrf2
+void My_dgetrf2(MKL_INT M, MKL_INT N, double* A, MKL_INT lda, int* PIV, int* INFO)
+{
+	int inf;
+	dgetrf2_( &M, &N, A, &lda, PIV, &inf);
+	*INFO = inf;
+}
+
 // my_dlaswp
 void My_dlaswp(MKL_INT N, double* A, MKL_INT lda, MKL_INT K1, MKL_INT K2, int* PIV, MKL_INT INCX)
 {
@@ -95,7 +103,10 @@ int main(const int argc, const char **argv)
 
 				#pragma omp task depend(inout: dep[i:ib]) depend(out: piv[i:ib])
 				{
-					int info = LAPACKE_dgetrf2(MKL_COL_MAJOR, m-i, ib, A+(i+i*m), m, piv+i);
+//					int info = LAPACKE_dgetrf2(MKL_COL_MAJOR, m-i, ib, A+(i+i*m), m, piv+i);
+
+					int info;
+					My_dgetrf2(m-i,ib,A+(i+i*m), m, piv+i, &info);
 					assert(info==0);
 
 					for (int k=i; k<min(m,i+ib); k++)
@@ -105,9 +116,9 @@ int main(const int argc, const char **argv)
 				#pragma omp task depend(out: dep[0:i]) depend(in: piv[i:ib])
 				{
 					// Apply interchanges to columns 0:i
-//					int info = LAPACKE_dlaswp(MKL_COL_MAJOR, i, A, m, i+1, i+ib, piv, 1);
-//					assert(info==0);
-					My_dlaswp( i, A, m, i+1, i+ib, piv, 1);
+					int info = LAPACKE_dlaswp(MKL_COL_MAJOR, i, A, m, i+1, i+ib, piv, 1);
+					assert(info==0);
+//					My_dlaswp( i, A, m, i+1, i+ib, piv, 1);
 				}
 
 				if (i+ib < n)
@@ -119,9 +130,9 @@ int main(const int argc, const char **argv)
 						#pragma omp task depend(inout: dep[j:jb]) depend(in: piv[i:ib])
 						{
 							// Apply interchanges to columns i+ib:n-1
-//							int info = LAPACKE_dlaswp(MKL_COL_MAJOR, jb, A+(j*m), m, i+1, i+ib, piv, 1);
-//							assert(info==0);
-							My_dlaswp( jb, A+(j*m), m, i+1, i+ib, piv, 1);
+							int info = LAPACKE_dlaswp(MKL_COL_MAJOR, jb, A+(j*m), m, i+1, i+ib, piv, 1);
+							assert(info==0);
+//							My_dlaswp( jb, A+(j*m), m, i+1, i+ib, piv, 1);
 						}
 
 						#pragma omp task depend(in: dep[i:ib]) depend(inout: dep[j:jb])
