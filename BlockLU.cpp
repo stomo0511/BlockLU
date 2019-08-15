@@ -47,6 +47,12 @@ void Copy_mat(const int m, const int n, double *A, double *B)
 		B[i] = A[i];
 }
 
+// my_dlaswp
+void My_dlaswp(MKL_INT N, double* A, MKL_INT lda, MKL_INT K1, MKL_INT K2, int* PIV, MKL_INT INCX)
+{
+	dlaswp_( &N, A, &lda, &K1, &K2, PIV, &INCX);
+}
+
 // Debug mode
 #define DEBUG
 
@@ -81,43 +87,63 @@ int main(const int argc, const char **argv)
 
 	#pragma omp parallel
 	{
-	for (int i=0; i<n; i+=nb)
-	{
-		int ib = min(n-i,nb);
-
-		int info = LAPACKE_dgetrf2(MKL_COL_MAJOR, m-i, ib, A+(i+i*m), m, piv+i);
-		assert(info==0);
-
-		for (int k=i; k<min(m,i+ib); k++)
-			piv[k] += i;
-
-		// Apply interchanges to columns 0:i
-		info = LAPACKE_dlaswp(MKL_COL_MAJOR, i, A, m, i+1, i+ib, piv, 1);
-		assert(info==0);
-
-		if (i+ib < n)
+		#pragma omp single
 		{
-			#pragma omp parallel for
-			for (int j=i+ib; j<n; j+=ib)
+			for (int i=0; i<n; i+=nb)
 			{
-				int jb = min(n-j,nb);
+				int ib = min(n-i,nb);
 
-				// Apply interchanges to columns i+ib:n-1
-				info = LAPACKE_dlaswp(MKL_COL_MAJOR, jb, A+(j*m), m, i+1, i+ib, piv, 1);
-				assert(info==0);
+				#pragma omp task depend(inout: dep[i:ib]) depend(out: piv[i:ib])
+				{
+					int info = LAPACKE_dgetrf2(MKL_COL_MAJOR, m-i, ib, A+(i+i*m), m, piv+i);
+					assert(info==0);
 
-				// Compute block row of U
-				cblas_dtrsm(CblasColMajor, CblasLeft, CblasLower, CblasNoTrans, CblasUnit,
-						ib, jb, 1.0, A+(i+i*m), m, A+(i+j*m), m);
-
-				// Update trailing submatrix
-				if (i+ib < m) {
-					cblas_dgemm(CblasColMajor, CblasNoTrans, CblasNoTrans,
-							m-i-ib, jb, ib, -1.0, A+(i+ib+i*m), m, A+(i+j*m), m, 1.0, A+(i+ib+j*m), m);
+					for (int k=i; k<min(m,i+ib); k++)
+						piv[k] += i;
 				}
-			}
-		}
-	}
+
+				#pragma omp task depend(out: dep[0:i]) depend(in: piv[i:ib])
+				{
+					// Apply interchanges to columns 0:i
+//					int info = LAPACKE_dlaswp(MKL_COL_MAJOR, i, A, m, i+1, i+ib, piv, 1);
+//					assert(info==0);
+					My_dlaswp( i, A, m, i+1, i+ib, piv, 1);
+				}
+
+				if (i+ib < n)
+				{
+					for (int j=i+ib; j<n; j+=ib)
+					{
+						int jb = min(n-j,nb);
+
+						#pragma omp task depend(inout: dep[j:jb]) depend(in: piv[i:ib])
+						{
+							// Apply interchanges to columns i+ib:n-1
+//							int info = LAPACKE_dlaswp(MKL_COL_MAJOR, jb, A+(j*m), m, i+1, i+ib, piv, 1);
+//							assert(info==0);
+							My_dlaswp( jb, A+(j*m), m, i+1, i+ib, piv, 1);
+						}
+
+						#pragma omp task depend(in: dep[i:ib]) depend(inout: dep[j:jb])
+						{
+							// Compute block row of U
+							cblas_dtrsm(CblasColMajor, CblasLeft, CblasLower, CblasNoTrans, CblasUnit,
+									ib, jb, 1.0, A+(i+i*m), m, A+(i+j*m), m);
+						}
+
+						// Update trailing submatrix
+						if (i+ib < m) {
+							#pragma omp task depend(in: dep[i:ib]) depend(inout: dep[j:jb])
+							{
+								cblas_dgemm(CblasColMajor, CblasNoTrans, CblasNoTrans,
+										m-i-ib, jb, ib, -1.0, A+(i+ib+i*m), m, A+(i+j*m), m, 1.0, A+(i+ib+j*m), m);
+							}
+						} // End of if
+					} // End of J-loop
+				} // End of if
+			} // End of I-loop
+		} // End of single region
+	} // End of parallel region
 
 	timer = omp_get_wtime() - timer;
 
