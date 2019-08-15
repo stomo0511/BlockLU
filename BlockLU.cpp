@@ -64,6 +64,9 @@ int main(const int argc, const char **argv)
 	double *A = new double[m*n];     // Original matrix
 	int *piv = new int[m];           // permutation vector
 
+	// Dependency checker
+	int *dep = new int[n];
+
 	Gen_rand_mat(m,n,A);             // Randomize elements of orig. matrix
 
 	////////// Debug mode //////////
@@ -76,6 +79,8 @@ int main(const int argc, const char **argv)
 
 	double timer = omp_get_wtime();
 
+	#pragma omp parallel
+	{
 	for (int i=0; i<n; i+=nb)
 	{
 		int ib = min(n-i,nb);
