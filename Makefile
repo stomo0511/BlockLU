@@ -1,11 +1,12 @@
 CXX = /usr/local/bin/g++-9
-CXXFLAGS = -fopenmp -O2
-LDFLAGS = -lgomp
+CXXFLAGS = -m64 -fopenmp -O2
+#CXXFLAGS = -m64 -O2
+LDFLAGS = -lgomp -lm -ldl
 
 MKL_ROOT =  /opt/intel/compilers_and_libraries/mac/mkl
 MKL_INC_DIR = $(MKL_ROOT)/include
 MKL_LIB_DIR = $(MKL_ROOT)/lib
-MKL_LIBS = -lmkl_intel_lp64 -lmkl_core -lmkl_sequential
+MKL_LIBS = -lmkl_intel_lp64 -lmkl_sequential -lmkl_core 
 
 OBJS =		BlockLU.o
 

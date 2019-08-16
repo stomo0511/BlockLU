@@ -107,8 +107,8 @@ int main(const int argc, const char **argv)
 
 				#pragma omp task depend(inout: dep[i/ib:p-i/ib][i/ib]) depend(out: piv[i:ib])
 				{
-					#pragma omp critical
-					cout << "dgetrf2: inout: dep[" << i/ib << ":" << p-i/ib << "][" << i/ib << "], out: piv[" << i << ":" << ib << "]\n";
+//					#pragma omp critical
+//					cout << "dgetrf2: inout: dep[" << i/ib << ":" << p-i/ib << "][" << i/ib << "], out: piv[" << i << ":" << ib << "]\n";
 
 					int info = LAPACKE_dgetrf2(MKL_COL_MAJOR, m-i, ib, A+(i+i*m), m, piv+i);
 //					int info;
@@ -121,8 +121,8 @@ int main(const int argc, const char **argv)
 
 				#pragma omp task depend(out: dep[i/ib][0:i/ib]) depend(in: piv[i:ib])
 				{
-					#pragma omp critical
-					cout << "dlaswp1: out: dep[" << i/ib << "][0:" << i/ib << "], in: piv[" << i << ":" << ib << "]\n";
+//					#pragma omp critical
+//					cout << "dlaswp1: out: dep[" << i/ib << "][0:" << i/ib << "], in: piv[" << i << ":" << ib << "]\n";
 
 					// Apply interchanges to columns 0:i
 					int info = LAPACKE_dlaswp(MKL_COL_MAJOR, i, A, m, i+1, i+ib, piv, 1);
@@ -138,8 +138,8 @@ int main(const int argc, const char **argv)
 
 						#pragma omp task depend(inout: dep[i/ib][j/jb]) depend(in: piv[i:ib])
 						{
-							#pragma omp critical
-							cout << "dlaswp2: inout: dep[" << i/ib << "][" << j/jb << "], in: piv[" << i << ":" << ib << "]\n";
+//							#pragma omp critical
+//							cout << "dlaswp2: inout: dep[" << i/ib << "][" << j/jb << "], in: piv[" << i << ":" << ib << "]\n";
 
 							// Apply interchanges to columns i+ib:n-1
 							int info = LAPACKE_dlaswp(MKL_COL_MAJOR, jb, A+(j*m), m, i+1, i+ib, piv, 1);
@@ -149,8 +149,8 @@ int main(const int argc, const char **argv)
 
 						#pragma omp task depend(in: dep[i/ib][i/ib]) depend(inout: dep[i/ib][j/jb])
 						{
-							#pragma omp critical
-							cout << "dtrsm: in: dep[" << i/ib << "][" << i/ib << "], inout: dep[" << i/ib << "][" << j/jb << "]\n";
+//							#pragma omp critical
+//							cout << "dtrsm: in: dep[" << i/ib << "][" << i/ib << "], inout: dep[" << i/ib << "][" << j/jb << "]\n";
 
 							// Compute block row of U
 							cblas_dtrsm(CblasColMajor, CblasLeft, CblasLower, CblasNoTrans, CblasUnit,
@@ -161,8 +161,8 @@ int main(const int argc, const char **argv)
 						if (i+ib < m) {
 							#pragma omp task depend(in: dep[i/ib+1:p-i/ib-1][i/ib], dep[i/ib][j/jb]) depend(inout: dep[i/ib+1:p-i/ib-1][j/jb])
 							{
-								#pragma omp critical
-								cout << "dgemm: in: dep[" << i/ib+1 << ":" << p-i/ib-1 << "][" << i/ib << "] dep[" << i/ib << "][" << j/jb << "], inout: dep[" << i/ib+1 << ":" << p-i/ib-1 << "][" << j/jb << "]\n";
+//								#pragma omp critical
+//								cout << "dgemm: in: dep[" << i/ib+1 << ":" << p-i/ib-1 << "][" << i/ib << "] dep[" << i/ib << "][" << j/jb << "], inout: dep[" << i/ib+1 << ":" << p-i/ib-1 << "][" << j/jb << "]\n";
 
 								cblas_dgemm(CblasColMajor, CblasNoTrans, CblasNoTrans,
 										m-i-ib, jb, ib, -1.0, A+(i+ib+i*m), m, A+(i+j*m), m, 1.0, A+(i+ib+j*m), m);
