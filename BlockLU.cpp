@@ -39,14 +39,6 @@ void Show_mat(const int m, const int n, double *A)
 	cout << endl;
 }
 
-// Copy matrix elements from A to B
-void Copy_mat(const int m, const int n, double *A, double *B)
-{
-//	#pragma omp for
-	for (int i=0; i<m*n; i++)
-		B[i] = A[i];
-}
-
 // Debug mode
 #define DEBUG
 
@@ -69,7 +61,7 @@ int main(const int argc, const char **argv)
 	////////// Debug mode //////////
 	#ifdef DEBUG
 	double *OA = new double[m*n];
-	Copy_mat(m,n,A,OA);
+	cblas_dcopy(m*n,A,1,OA,1);
 	double *U = new double[m*n];
 	#endif
 	////////// Debug mode //////////
@@ -80,15 +72,13 @@ int main(const int argc, const char **argv)
 	{
 		int ib = min(n-i,nb);
 
-		int info = LAPACKE_dgetrf2(MKL_COL_MAJOR, m-i, ib, A+(i+i*m), m, piv+i);
-		assert(info==0);
+		assert(0 == LAPACKE_dgetrf2(MKL_COL_MAJOR, m-i, ib, A+(i+i*m), m, piv+i));
 
 		for (int k=i; k<min(m,i+ib); k++)
 			piv[k] += i;
 
 		// Apply interchanges to columns 0:i
-		info = LAPACKE_dlaswp(MKL_COL_MAJOR, i, A, m, i+1, i+ib, piv, 1);
-		assert(info==0);
+		assert(0 == LAPACKE_dlaswp(MKL_COL_MAJOR, i, A, m, i+1, i+ib, piv, 1));
 
 		if (i+ib < n)
 		{
@@ -98,8 +88,7 @@ int main(const int argc, const char **argv)
 				int jb = min(n-j,nb);
 
 				// Apply interchanges to columns i+ib:n-1
-				info = LAPACKE_dlaswp(MKL_COL_MAJOR, jb, A+(j*m), m, i+1, i+ib, piv, 1);
-				assert(info==0);
+				assert(0 == LAPACKE_dlaswp(MKL_COL_MAJOR, jb, A+(j*m), m, i+1, i+ib, piv, 1));
 
 				// Compute block row of U
 				cblas_dtrsm(CblasColMajor, CblasLeft, CblasLower, CblasNoTrans, CblasUnit,
@@ -128,8 +117,7 @@ int main(const int argc, const char **argv)
 			m, n, 1.0, A, m, U, m);
 
 	// Apply interchanges to matrix A
-	int info = LAPACKE_dlaswp(MKL_COL_MAJOR, n, OA, m, 1, n, piv, 1);
-	assert(info==0);
+	assert( 0 == LAPACKE_dlaswp(MKL_COL_MAJOR, n, OA, m, 1, n, piv, 1));
 
 	double tmp = 0.0;
 	for (int i=0; i<m*n; i++)
