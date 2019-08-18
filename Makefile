@@ -15,7 +15,7 @@ TARGET =	BlockLU
 all:	$(TARGET)
 
 $(TARGET):	$(OBJS)
-	$(CXX) $(CXXFLAGS) -o $(TARGET) $(OBJS) $(LDFLAGS) -L$(MKL_LIB_DIR) $(MKL_LIBS)
+	$(CXX) $(CXXFLAGS) -o $(TARGET) $(OBJS) -L$(MKL_LIB_DIR) $(MKL_LIBS) $(LDFLAGS)
 
 %.o: %.cpp
 	$(CXX) -c $(CXXFLAGS) -I$(MKL_INC_DIR) -o $@ $<

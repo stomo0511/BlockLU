@@ -39,14 +39,6 @@ void Show_mat(const int m, const int n, double *A)
 	cout << endl;
 }
 
-// Copy matrix elements from A to B
-void Copy_mat(const int m, const int n, double *A, double *B)
-{
-//	#pragma omp for
-	for (int i=0; i<m*n; i++)
-		B[i] = A[i];
-}
-
 // my_dgetrf2
 void My_dgetrf2(MKL_INT M, MKL_INT N, double* A, MKL_INT lda, int* PIV, int* INFO)
 {
@@ -90,7 +82,7 @@ int main(const int argc, const char **argv)
 	////////// Debug mode //////////
 	#ifdef DEBUG
 	double *OA = new double[m*n];
-	Copy_mat(m,n,A,OA);
+	cblas_dcopy(m*n, A, 1, OA, 1);
 	double *U = new double[m*n];
 	#endif
 	////////// Debug mode //////////
@@ -110,23 +102,23 @@ int main(const int argc, const char **argv)
 //					#pragma omp critical
 //					cout << "dgetrf2: inout: dep[" << i/ib << ":" << p-i/ib << "][" << i/ib << "], out: piv[" << i << ":" << ib << "]\n";
 
-					int info = LAPACKE_dgetrf2(MKL_COL_MAJOR, m-i, ib, A+(i+i*m), m, piv+i);
+					assert(0 == LAPACKE_dgetrf2(MKL_COL_MAJOR, m-i, ib, A+(i+i*m), m, piv+i));
 //					int info;
 //					My_dgetrf2(m-i,ib,A+(i+i*m), m, piv+i, &info);
-					assert(info==0);
+//					assert(info==0);
 
 					for (int k=i; k<min(m,i+ib); k++)
 						piv[k] += i;
 				}
 
-				#pragma omp task depend(out: dep[i/ib][0:i/ib]) depend(in: piv[i:ib])
+				#pragma omp task depend(inout: dep[i/ib][0:i/ib]) depend(in: piv[i:ib])
 				{
 //					#pragma omp critical
 //					cout << "dlaswp1: out: dep[" << i/ib << "][0:" << i/ib << "], in: piv[" << i << ":" << ib << "]\n";
 
 					// Apply interchanges to columns 0:i
-					int info = LAPACKE_dlaswp(MKL_COL_MAJOR, i, A, m, i+1, i+ib, piv, 1);
-					assert(info==0);
+					assert(0 == LAPACKE_dlaswp(MKL_COL_MAJOR, i, A, m, i+1, i+ib, piv, 1));
+//					assert(info==0);
 //					My_dlaswp( i, A, m, i+1, i+ib, piv, 1);
 				}
 
@@ -134,7 +126,7 @@ int main(const int argc, const char **argv)
 				{
 					for (int j=i+ib; j<n; j+=ib)
 					{
-						int jb = min(n-j,nb);
+						int jb = min(n-j,ib);
 
 						#pragma omp task depend(inout: dep[i/ib][j/jb]) depend(in: piv[i:ib])
 						{
@@ -142,8 +134,8 @@ int main(const int argc, const char **argv)
 //							cout << "dlaswp2: inout: dep[" << i/ib << "][" << j/jb << "], in: piv[" << i << ":" << ib << "]\n";
 
 							// Apply interchanges to columns i+ib:n-1
-							int info = LAPACKE_dlaswp(MKL_COL_MAJOR, jb, A+(j*m), m, i+1, i+ib, piv, 1);
-							assert(info==0);
+							assert(0 == LAPACKE_dlaswp(MKL_COL_MAJOR, jb, A+(j*m), m, i+1, i+ib, piv, 1));
+//							assert(info==0);
 //							My_dlaswp( jb, A+(j*m), m, i+1, i+ib, piv, 1);
 						}
 
@@ -188,8 +180,7 @@ int main(const int argc, const char **argv)
 			m, n, 1.0, A, m, U, m);
 
 	// Apply interchanges to matrix A
-	int info = LAPACKE_dlaswp(MKL_COL_MAJOR, n, OA, m, 1, n, piv, 1);
-	assert(info==0);
+	assert(0 == LAPACKE_dlaswp(MKL_COL_MAJOR, n, OA, m, 1, n, piv, 1));
 
 	double tmp = 0.0;
 	for (int i=0; i<m*n; i++)
