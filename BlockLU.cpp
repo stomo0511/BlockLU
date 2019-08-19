@@ -27,32 +27,6 @@ void Gen_rand_mat(const int m, const int n, double *A)
 		A[i] = 1.0 - 2*(double)rand() / RAND_MAX;
 }
 
-// Show matrix
-void Show_mat(const int m, const int n, double *A)
-{
-	cout.setf(ios::scientific);
-	for (int i=0; i<m; i++) {
-		for (int j=0; j<n; j++)
-			cout << showpos << setprecision(4) << A[i + j*m] << ", ";
-		cout << endl;
-	}
-	cout << endl;
-}
-
-// my_dgetrf2
-void My_dgetrf2(MKL_INT M, MKL_INT N, double* A, MKL_INT lda, int* PIV, int* INFO)
-{
-	int inf;
-	dgetrf2_( &M, &N, A, &lda, PIV, &inf);
-	*INFO = inf;
-}
-
-// my_dlaswp
-void My_dlaswp(MKL_INT N, double* A, MKL_INT lda, MKL_INT K1, MKL_INT K2, int* PIV, MKL_INT INCX)
-{
-	dlaswp_( &N, A, &lda, &K1, &K2, PIV, &INCX);
-}
-
 // Debug mode
 #define DEBUG
 
@@ -83,7 +57,7 @@ int main(const int argc, const char **argv)
 	#ifdef DEBUG
 	double *OA = new double[m*n];
 	cblas_dcopy(m*n, A, 1, OA, 1);
-	double *U = new double[m*n];
+	double *U = new double[n*n];
 	#endif
 	////////// Debug mode //////////
 
@@ -91,7 +65,7 @@ int main(const int argc, const char **argv)
 
 	#pragma omp parallel
 	{
-		#pragma omp single
+		#pragma omp master
 		{
 			for (int i=0; i<n; i+=nb)
 			{
@@ -99,13 +73,7 @@ int main(const int argc, const char **argv)
 
 				#pragma omp task depend(inout: dep[i/ib:p-i/ib][i/ib]) depend(out: piv[i:ib])
 				{
-//					#pragma omp critical
-//					cout << "dgetrf2: inout: dep[" << i/ib << ":" << p-i/ib << "][" << i/ib << "], out: piv[" << i << ":" << ib << "]\n";
-
 					assert(0 == LAPACKE_dgetrf2(MKL_COL_MAJOR, m-i, ib, A+(i+i*m), m, piv+i));
-//					int info;
-//					My_dgetrf2(m-i,ib,A+(i+i*m), m, piv+i, &info);
-//					assert(info==0);
 
 					for (int k=i; k<min(m,i+ib); k++)
 						piv[k] += i;
@@ -113,13 +81,8 @@ int main(const int argc, const char **argv)
 
 				#pragma omp task depend(inout: dep[i/ib][0:i/ib]) depend(in: piv[i:ib])
 				{
-//					#pragma omp critical
-//					cout << "dlaswp1: out: dep[" << i/ib << "][0:" << i/ib << "], in: piv[" << i << ":" << ib << "]\n";
-
 					// Apply interchanges to columns 0:i
 					assert(0 == LAPACKE_dlaswp(MKL_COL_MAJOR, i, A, m, i+1, i+ib, piv, 1));
-//					assert(info==0);
-//					My_dlaswp( i, A, m, i+1, i+ib, piv, 1);
 				}
 
 				if (i+ib < n)
@@ -130,20 +93,12 @@ int main(const int argc, const char **argv)
 
 						#pragma omp task depend(inout: dep[i/ib][j/jb]) depend(in: piv[i:ib])
 						{
-//							#pragma omp critical
-//							cout << "dlaswp2: inout: dep[" << i/ib << "][" << j/jb << "], in: piv[" << i << ":" << ib << "]\n";
-
 							// Apply interchanges to columns i+ib:n-1
 							assert(0 == LAPACKE_dlaswp(MKL_COL_MAJOR, jb, A+(j*m), m, i+1, i+ib, piv, 1));
-//							assert(info==0);
-//							My_dlaswp( jb, A+(j*m), m, i+1, i+ib, piv, 1);
 						}
 
 						#pragma omp task depend(in: dep[i/ib][i/ib]) depend(inout: dep[i/ib][j/jb])
 						{
-//							#pragma omp critical
-//							cout << "dtrsm: in: dep[" << i/ib << "][" << i/ib << "], inout: dep[" << i/ib << "][" << j/jb << "]\n";
-
 							// Compute block row of U
 							cblas_dtrsm(CblasColMajor, CblasLeft, CblasLower, CblasNoTrans, CblasUnit,
 									ib, jb, 1.0, A+(i+i*m), m, A+(i+j*m), m);
@@ -153,9 +108,6 @@ int main(const int argc, const char **argv)
 						if (i+ib < m) {
 							#pragma omp task depend(in: dep[i/ib+1:p-i/ib-1][i/ib], dep[i/ib][j/jb]) depend(inout: dep[i/ib+1:p-i/ib-1][j/jb])
 							{
-//								#pragma omp critical
-//								cout << "dgemm: in: dep[" << i/ib+1 << ":" << p-i/ib-1 << "][" << i/ib << "] dep[" << i/ib << "][" << j/jb << "], inout: dep[" << i/ib+1 << ":" << p-i/ib-1 << "][" << j/jb << "]\n";
-
 								cblas_dgemm(CblasColMajor, CblasNoTrans, CblasNoTrans,
 										m-i-ib, jb, ib, -1.0, A+(i+ib+i*m), m, A+(i+j*m), m, 1.0, A+(i+ib+j*m), m);
 							}
@@ -172,22 +124,29 @@ int main(const int argc, const char **argv)
 
 	////////// Debug mode //////////
 	#ifdef DEBUG
+	// Upper triangular matrix
+	for (int i=0; i<n; i++)
+		for (int j=0; j<n; j++)
+			U[i+j*n] = (j<i) ? 0.0 : A[i+j*m];
+
+	// Unit lower triangular matrix
 	for (int i=0; i<m; i++)
 		for (int j=0; j<n; j++)
-			U[i+j*m] = (j<i) ? 0.0 : A[i+j*m];
+		{
+			if (i==j)
+				A[i+j*m] = 1.0;
+			else if (j>i)
+				A[i+j*m] = 0.0;
+		}
 
-	cblas_dtrmm(CblasColMajor, CblasLeft, CblasLower, CblasNoTrans, CblasUnit,
-			m, n, 1.0, A, m, U, m);
-
-	// Apply interchanges to matrix A
+	// Apply interchanges to original matrix A
 	assert(0 == LAPACKE_dlaswp(MKL_COL_MAJOR, n, OA, m, 1, n, piv, 1));
 
-	double tmp = 0.0;
-	for (int i=0; i<m*n; i++)
-		tmp += (OA[i] - U[i])*(OA[i] - U[i]);
+	cblas_dgemm(CblasColMajor, CblasNoTrans, CblasNoTrans,
+			m, n, n, -1.0, A, m, U, n, 1.0, OA, m);
 
 	cout << "Debug mode: \n";
-	cout << "|| PA - LU ||_2 = " << sqrt(tmp) << endl;
+	cout << "|| PA - LU ||_2 = " << cblas_dnrm2(m*n, OA, 1) << endl;
 
 	delete [] OA;
 	delete [] U;
