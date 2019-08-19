@@ -39,16 +39,8 @@ void Show_mat(const int m, const int n, double *A)
 	cout << endl;
 }
 
-// Copy matrix elements from A to B
-void Copy_mat(const int m, const int n, double *A, double *B)
-{
-//	#pragma omp for
-	for (int i=0; i<m*n; i++)
-		B[i] = A[i];
-}
-
 // Debug mode
-//#define DEBUG
+#define DEBUG
 
 int main(const int argc, const char **argv)
 {
@@ -69,8 +61,8 @@ int main(const int argc, const char **argv)
 	////////// Debug mode //////////
 	#ifdef DEBUG
 	double *OA = new double[m*n];
-	Copy_mat(m,n,A,OA);
-	double *U = new double[m*n];
+	cblas_dcopy(m*n,A,1,OA,1);
+	double *U = new double[n*n];
 	#endif
 
 	double timer = omp_get_wtime();
@@ -83,23 +75,29 @@ int main(const int argc, const char **argv)
 
 	////////// Debug mode //////////
 	#ifdef DEBUG
+	// Upper triangular matrix
+	for (int i=0; i<n; i++)
+		for (int j=0; j<n; j++)
+			U[i+j*n] = (j<i) ? 0.0 : A[i+j*m];
+
+	// Unit lower triangular matrix
 	for (int i=0; i<m; i++)
 		for (int j=0; j<n; j++)
-			U[i+j*m] = (j<i) ? 0.0 : A[i+j*m];
+		{
+			if (i==j)
+				A[i+j*m] = 1.0;
+			else if (j>i)
+				A[i+j*m] = 0.0;
+		}
 
-	cblas_dtrmm(CblasColMajor, CblasLeft, CblasLower, CblasNoTrans, CblasUnit,
-			m, n, 1.0, A, m, U, m);
+	// Apply interchanges to original matrix A
+	assert(0 == LAPACKE_dlaswp(MKL_COL_MAJOR, n, OA, m, 1, n, piv, 1));
 
-	// Apply interchanges to matrix A
-	int info = LAPACKE_dlaswp(MKL_COL_MAJOR, n, OA, m, 1, n, piv, 1);
-	assert(info==0);
-
-	double tmp = 0.0;
-	for (int i=0; i<m*n; i++)
-		tmp += (OA[i] - U[i])*(OA[i] - U[i]);
+	cblas_dgemm(CblasColMajor, CblasNoTrans, CblasNoTrans,
+			m, n, n, -1.0, A, m, U, n, 1.0, OA, m);
 
 	cout << "Debug mode: \n";
-	cout << "|| PA - LU ||_2 = " << sqrt(tmp) << endl;
+	cout << "|| PA - LU ||_2 = " << cblas_dnrm2(m*n, OA, 1) << endl;
 
 	delete [] OA;
 	delete [] U;
