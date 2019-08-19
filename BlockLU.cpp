@@ -62,7 +62,7 @@ int main(const int argc, const char **argv)
 	#ifdef DEBUG
 	double *OA = new double[m*n];
 	cblas_dcopy(m*n,A,1,OA,1);
-	double *U = new double[m*n];
+	double *U = new double[n*n];
 	#endif
 	////////// Debug mode //////////
 
