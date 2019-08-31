@@ -53,7 +53,7 @@ int main(const int argc, const char **argv)
 	assert(m >= n);
 	assert(nb <= n);
 
-	double *A = new double[m*n];     // Original matrix
+	double *A = new double[m*n];   // Original matrix
 	int *piv = new int[m];           // permutation vector
 
 	Gen_rand_mat(m,n,A);             // Randomize elements of orig. matrix
