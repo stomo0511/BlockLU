@@ -1,6 +1,5 @@
 CXX = /usr/local/bin/g++-9
 CXXFLAGS = -m64 -fopenmp -O2
-#CXXFLAGS = -m64 -O2
 LDFLAGS = -lgomp -lm -ldl
 
 MKL_ROOT =  /opt/intel/compilers_and_libraries/mac/mkl
