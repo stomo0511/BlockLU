@@ -30,6 +30,10 @@ void Gen_rand_mat(const int m, const int n, double *A)
 // Debug mode
 #define DEBUG
 
+extern void trace_cpu_start();
+extern void trace_cpu_stop(const char *color);
+extern void trace_label(const char *color, const char *label);
+
 int main(const int argc, const char **argv)
 {
 	// Usage "a.out [size of matrix: m n ] [block width]"
@@ -64,28 +68,31 @@ int main(const int argc, const char **argv)
 			{
 				int ib = min(n-i,nb);
 
-				#pragma omp task depend(inout: A[i*m:m*ib]) depend(out: piv[i:ib])
+				#pragma omp task depend(inout: A[i*m:m*ib]) depend(out: piv[i:ib]) priority(5)
 				{
-//					trace_cpu_start();
-//					trace_label("Red", "GETRF2");
+					trace_cpu_start();
+					trace_label("Red", "GETRF2");
 
 					assert(0 == LAPACKE_dgetrf2(MKL_COL_MAJOR, m-i, ib, A+(i+i*m), m, piv+i));
 
 					for (int k=i; k<min(m,i+ib); k++)
 						piv[k] += i;
 
-//					trace_cpu_stop("Red");
+					trace_cpu_stop("Red");
 				}
 
-				#pragma omp task depend(inout: A[0:m*i]) depend(in: piv[i:ib])
+				// Apply interchanges to columns 0:i
+				for (int k=0; k<i; k+=nb)
 				{
-//					trace_cpu_start();
-//					trace_label("Aqua", "LASWP1");
+					#pragma omp task depend(inout: A[k:m*nb]) depend(in: piv[i:ib]) priority(1)
+					{
+						trace_cpu_start();
+						trace_label("Aqua", "LASWP1");
 
-					// Apply interchanges to columns 0:i
-					assert(0 == LAPACKE_dlaswp(MKL_COL_MAJOR, i, A, m, i+1, i+ib, piv, 1));
+						assert(0 == LAPACKE_dlaswp(MKL_COL_MAJOR, nb, A+(k*m), m, i+1, i+ib, piv, 1));
 
-//					trace_cpu_stop("Aqua");
+						trace_cpu_stop("Aqua");
+					}
 				}
 
 				if (i+ib < n)
@@ -94,40 +101,40 @@ int main(const int argc, const char **argv)
 					{
 						int jb = min(n-j,nb);
 
-						#pragma omp task depend(inout: A[j*m:m*jb]) depend(in: piv[i:ib])
+						#pragma omp task depend(inout: A[j*m:m*jb]) depend(in: piv[i:ib]) priority(3)
 						{
-//							trace_cpu_start();
-//							trace_label("LightCyan", "LASWP2");
+							trace_cpu_start();
+							trace_label("LightCyan", "LASWP2");
 
 							// Apply interchanges to columns i+ib:n-1
 							assert(0 == LAPACKE_dlaswp(MKL_COL_MAJOR, jb, A+(j*m), m, i+1, i+ib, piv, 1));
 
-//							trace_cpu_stop("LightCyan");
+							trace_cpu_stop("LightCyan");
 						}
 
-						#pragma omp task depend(in: A[i*m:m*ib]) depend(inout: A[j*m:m*jb])
+						#pragma omp task depend(in: A[i*m:m*ib]) depend(inout: A[j*m:m*jb]) priority(3)
 						{
-//							trace_cpu_start();
-//							trace_label("Green", "TRSM");
+							trace_cpu_start();
+							trace_label("Green", "TRSM");
 
 							// Compute block row of U
 							cblas_dtrsm(CblasColMajor, CblasLeft, CblasLower, CblasNoTrans, CblasUnit,
 									ib, jb, 1.0, A+(i+i*m), m, A+(i+j*m), m);
 
-//							trace_cpu_stop("Green");
+							trace_cpu_stop("Green");
 						}
 
 						// Update trailing submatrix
 						if (i+ib < m) {
-						#pragma omp task depend(in: A[i*m:m*ib]) depend(inout: A[j*m:m*jb])
+						#pragma omp task depend(in: A[i*m:m*ib]) depend(inout: A[j*m:m*jb]) priority(3)
 						{
-//							trace_cpu_start();
-//							trace_label("Blue", "GEMM");
+							trace_cpu_start();
+							trace_label("Blue", "GEMM");
 
 							cblas_dgemm(CblasColMajor, CblasNoTrans, CblasNoTrans,
 									m-i-ib, jb, ib, -1.0, A+(i+ib+i*m), m, A+(i+j*m), m, 1.0, A+(i+ib+j*m), m);
 
-//							trace_cpu_stop("Blue");
+							trace_cpu_stop("Blue");
 						} }
 					} // End of j-loop
 				} // End of if
