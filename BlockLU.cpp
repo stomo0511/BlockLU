@@ -132,8 +132,8 @@ int main(const int argc, const char **argv)
 					} // End of j-loop
 				} // End of if
 			} // End of i-loop
-		} // End of Single
-	} // End of Parallel
+		} // End of master
+	} // End of parallel
 
 	timer = omp_get_wtime() - timer;   // Timer stop
 
