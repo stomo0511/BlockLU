@@ -81,8 +81,7 @@ int main(const int argc, const char **argv)
 	{
 		int ib = min(n-i,nb);
 
-		int info = LAPACKE_dgetrf2(MKL_COL_MAJOR, m-i, ib, A+(i+i*m), m, piv+i);
-		assert(info==0);
+		assert(0 == LAPACKE_dgetrf2(MKL_COL_MAJOR, m-i, ib, A+(i+i*m), m, piv+i));
 
 		for (int k=i; k<min(m,i+ib); k++)
 			piv[k] += i;
