@@ -67,7 +67,7 @@ int main(const int argc, const char **argv)
 
 	#pragma omp parallel
 	{
-		#pragma omp master
+		#pragma omp single
 		{
 			for (int i=0; i<n; i+=nb)
 			{
