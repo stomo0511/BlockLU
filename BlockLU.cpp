@@ -67,7 +67,7 @@ int main(const int argc, const char **argv)
 
 	double timer = omp_get_wtime();
 
-	LAPACKE_dgetrf2( MKL_COL_MAJOR, m, n, A, m, piv );
+	assert(0 == LAPACKE_dgetrf2( MKL_COL_MAJOR, m, n, A, m, piv ));
 
 	timer = omp_get_wtime() - timer;
 
