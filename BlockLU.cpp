@@ -50,7 +50,7 @@ int main(const int argc, const char **argv)
 	assert(m >= n);
 	assert(nb <= n);
 
-	double *A = new double [m*n];    // Original matrix
+	double *A = new double [m*n];  // Original matrix
 	int *piv = new int [m];          // permutation vector
 
 	Gen_rand_mat(m,n,A);             // Randomize elements of orig. matrix
@@ -73,7 +73,7 @@ int main(const int argc, const char **argv)
 			{
 				int ib = min(n-i,nb);
 
-				#pragma omp task depend(inout: A[i*m:m*ib]) depend(out: piv[i:ib])
+//				#pragma omp task depend(inout: A[i*m:m*ib]) depend(out: piv[i:ib])
 				{
 					#ifdef TRACE
 					trace_cpu_start();
@@ -93,7 +93,7 @@ int main(const int argc, const char **argv)
 				// Apply interchanges to columns 0:i
 				for (int k=0; k<i; k+=nb)
 				{
-					#pragma omp task depend(inout: A[k:m*nb]) depend(in: piv[i:ib])
+//					#pragma omp task depend(inout: A[k:m*nb]) depend(in: piv[i:ib])
 					{
 						#ifdef TRACE
 						trace_cpu_start();
@@ -114,7 +114,7 @@ int main(const int argc, const char **argv)
 					{
 						int jb = min(n-j,nb);
 
-						#pragma omp task depend(inout: A[j*m:m*jb]) depend(in: piv[i:ib])
+//						#pragma omp task depend(inout: A[j*m:m*jb]) depend(in: piv[i:ib])
 						{
 							#ifdef TRACE
 							trace_cpu_start();
@@ -129,7 +129,7 @@ int main(const int argc, const char **argv)
 							#endif
 						}
 
-						#pragma omp task depend(in: A[i*m:m*ib]) depend(inout: A[j*m:m*jb])
+//						#pragma omp task depend(in: A[i*m:m*ib]) depend(inout: A[j*m:m*jb])
 						{
 							#ifdef TRACE
 							trace_cpu_start();
@@ -147,7 +147,7 @@ int main(const int argc, const char **argv)
 
 						// Update trailing submatrix
 						if (i+ib < m) {
-						#pragma omp task depend(in: A[i*m:m*ib]) depend(inout: A[j*m:m*jb])
+//						#pragma omp task depend(in: A[i*m:m*ib]) depend(inout: A[j*m:m*jb])
 						{
 							#ifdef TRACE
 							trace_cpu_start();
