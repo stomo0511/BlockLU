@@ -73,7 +73,7 @@ int main(const int argc, const char **argv)
 			{
 				int ib = min(n-i,nb);
 
-//				#pragma omp task depend(inout: A[i*m:m*ib]) depend(out: piv[i:ib])
+				#pragma omp task depend(inout: A[i*m:m*ib]) depend(out: piv[i:ib])
 				{
 					#ifdef TRACE
 					trace_cpu_start();
@@ -91,9 +91,10 @@ int main(const int argc, const char **argv)
 				}
 
 				// Apply interchanges to columns 0:i
+				#pragma taskloop
 				for (int k=0; k<i; k+=nb)
 				{
-//					#pragma omp task depend(inout: A[k:m*nb]) depend(in: piv[i:ib])
+					#pragma omp task depend(inout: A[k:m*nb]) depend(in: piv[i:ib])
 					{
 						#ifdef TRACE
 						trace_cpu_start();
@@ -110,6 +111,8 @@ int main(const int argc, const char **argv)
 
 				if (i+ib < n)
 				{
+//					#pragma omp taskloop depend(in: A[i*m:m*ib], piv[i:ib])  depend(inout: A[j*m:m*jb])
+//					#pragma omp taskloop
 					for (int j=i+ib; j<n; j+=ib)
 					{
 						int jb = min(n-j,nb);
