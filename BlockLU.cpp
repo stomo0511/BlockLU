@@ -87,12 +87,12 @@ int main(const int argc, const char **argv)
 			piv[k] += i;
 
 		// Apply interchanges to columns 0:i
-		LAPACKE_dlaswp(MKL_COL_MAJOR, i, A, m, i+1, i+ib, piv, 1);
+		assert(0 == LAPACKE_dlaswp(MKL_COL_MAJOR, i, A, m, i+1, i+ib, piv, 1));
 
 		if (i+ib < n)
 		{
 			// Apply interchanges to columns i+ib:n-1
-			LAPACKE_dlaswp(MKL_COL_MAJOR, n-i-ib, A+((i+ib)*m), m, i+1, i+ib, piv, 1);
+			assert(0 == LAPACKE_dlaswp(MKL_COL_MAJOR, n-i-ib, A+((i+ib)*m), m, i+1, i+ib, piv, 1));
 
 			// Compute block row of U
 			cblas_dtrsm(CblasColMajor, CblasLeft, CblasLower, CblasNoTrans, CblasUnit,
