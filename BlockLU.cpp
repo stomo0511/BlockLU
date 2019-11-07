@@ -32,6 +32,7 @@ void Show_mat(const int m, const int n, double *A)
 {
 	for (int i=0; i<m; i++)
 	{
+		cout << i << ": ";
 		for (int j=0; j<n; j++)
 			cout << A[i+j*m] << ", ";
 		cout << endl;
@@ -39,7 +40,7 @@ void Show_mat(const int m, const int n, double *A)
 }
 
 // Debug mode
-//#define DEBUG
+#define DEBUG
 
 // Trace mode
 //#define TRACE
@@ -76,8 +77,8 @@ int main(const int argc, const char **argv)
 
 	double timer = omp_get_wtime();
 
-//	for (int i=0; i<n; i+=nb)
-	for (int i=0; i<nb; i+=nb)
+	for (int i=0; i<n; i+=nb)
+//	for (int i=0; i<nb; i+=nb)
 	{
 		int ib = min(n-i,nb);
 
