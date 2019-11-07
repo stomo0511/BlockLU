@@ -28,10 +28,10 @@ void Gen_rand_mat(const int m, const int n, double *A)
 }
 
 // Debug mode
-#define DEBUG
+//#define DEBUG
 
 // Trace mode
-#define TRACE
+//#define TRACE
 
 #ifdef TRACE
 extern void trace_cpu_start();
@@ -111,13 +111,11 @@ int main(const int argc, const char **argv)
 
 				if (i+ib < n)
 				{
-//					#pragma omp taskloop depend(in: A[i*m:m*ib], piv[i:ib])  depend(inout: A[j*m:m*jb])
-//					#pragma omp taskloop
 					for (int j=i+ib; j<n; j+=ib)
 					{
 						int jb = min(n-j,nb);
 
-//						#pragma omp task depend(inout: A[j*m:m*jb]) depend(in: piv[i:ib])
+						#pragma omp task depend(inout: A[j*m:m*jb]) depend(in: piv[i:ib])
 						{
 							#ifdef TRACE
 							trace_cpu_start();
@@ -132,7 +130,7 @@ int main(const int argc, const char **argv)
 							#endif
 						}
 
-//						#pragma omp task depend(in: A[i*m:m*ib]) depend(inout: A[j*m:m*jb])
+						#pragma omp task depend(in: A[i*m:m*ib]) depend(inout: A[j*m:m*jb])
 						{
 							#ifdef TRACE
 							trace_cpu_start();
@@ -150,7 +148,7 @@ int main(const int argc, const char **argv)
 
 						// Update trailing submatrix
 						if (i+ib < m) {
-//						#pragma omp task depend(in: A[i*m:m*ib]) depend(inout: A[j*m:m*jb])
+						#pragma omp task depend(in: A[i*m:m*ib]) depend(inout: A[j*m:m*jb])
 						{
 							#ifdef TRACE
 							trace_cpu_start();
