@@ -27,16 +27,16 @@ void Gen_rand_mat(const int m, const int n, double *A)
 		A[i] = 1.0 - 2*(double)rand() / RAND_MAX;
 }
 
-// Show matrix elements
+// Show matrix
 void Show_mat(const int m, const int n, double *A)
 {
-	for (int i=0; i<m; i++)
-	{
-		cout << i << ": ";
+	cout.setf(ios::scientific);
+	for (int i=0; i<m; i++) {
 		for (int j=0; j<n; j++)
-			cout << A[i+j*m] << ", ";
+			cout << showpos << setprecision(4) << A[i + j*m] << ", ";
 		cout << endl;
 	}
+	cout << endl;
 }
 
 // Debug mode
