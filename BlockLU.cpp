@@ -130,53 +130,21 @@ int main(const int argc, const char **argv)
 					{
 						int jb = min(n-j,nb);
 
-						#pragma omp task depend(inout: A[j*m:m*jb]) depend(in: piv[i:ib])
+						#pragma omp task depend(in: piv[i:ib], A[i*m:m*ib]) depend(inout: A[j*m:m*jb])
 						{
-							#ifdef TRACE
-							trace_cpu_start();
-							trace_label("LightCyan", "dlaswp2");
-							#endif
-
 							// Apply interchanges to columns i+ib:n-1
 							assert(0 == LAPACKE_dlaswp(MKL_COL_MAJOR, jb, A+(j*m), m, i+1, i+ib, piv, 1));
-
-							#ifdef TRACE
-							trace_cpu_stop("LightCyan");
-							#endif
-						}
-
-						#pragma omp task depend(in: A[i*m:m*ib]) depend(inout: A[j*m:m*jb])
-						{
-							#ifdef TRACE
-							trace_cpu_start();
-							trace_label("Green", "dtrsm");
-							#endif
 
 							// Compute block row of U
 							cblas_dtrsm(CblasColMajor, CblasLeft, CblasLower, CblasNoTrans, CblasUnit,
 									ib, jb, 1.0, A+(i+i*m), m, A+(i+j*m), m);
 
-							#ifdef TRACE
-							trace_cpu_stop("Green");
-							#endif
+							// Update trailing submatrix
+							if (i+ib < m) {
+								cblas_dgemm(CblasColMajor, CblasNoTrans, CblasNoTrans,
+										m-i-ib, jb, ib, -1.0, A+(i+ib+i*m), m, A+(i+j*m), m, 1.0, A+(i+ib+j*m), m);
+							}
 						}
-
-						// Update trailing submatrix
-						if (i+ib < m) {
-						#pragma omp task depend(in: A[i*m:m*ib]) depend(inout: A[j*m:m*jb])
-						{
-							#ifdef TRACE
-							trace_cpu_start();
-							trace_label("Blue", "dgemm");
-							#endif
-
-							cblas_dgemm(CblasColMajor, CblasNoTrans, CblasNoTrans,
-									m-i-ib, jb, ib, -1.0, A+(i+ib+i*m), m, A+(i+j*m), m, 1.0, A+(i+ib+j*m), m);
-
-							#ifdef TRACE
-							trace_cpu_stop("Blue");
-							#endif
-						} }
 					} // End of j-loop
 				} // End of if
 			} // End of i-loop
@@ -186,7 +154,7 @@ int main(const int argc, const char **argv)
 	timer = omp_get_wtime() - timer;   // Timer stop
 
 	cout << "m = " << m << ", n = " << n << ", time = " << timer << endl;
-	Show_mat(m,n,A);
+//	Show_mat(m,n,A);
 
 	////////// Debug mode //////////
 	#ifdef DEBUG
