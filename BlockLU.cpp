@@ -82,7 +82,7 @@ int main(const int argc, const char **argv)
 		#pragma omp single
 		{
 //			for (int i=0; i<n; i+=nb)
-			for (int i=0; i<15*nb; i+=nb)
+			for (int i=0; i<16*nb; i+=nb)
 			{
 				int ib = min(n-i,nb);
 
