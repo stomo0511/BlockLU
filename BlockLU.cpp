@@ -50,20 +50,20 @@ int main(const int argc, const char **argv)
 	assert(m >= n);
 	assert(nb <= n);
 
-	double *A = new double[m*n];     // Original matrix
-	int *piv = new int[m];           // permutation vector
+	double *A = new double [m*n];  // Original matrix
+	int *piv = new int [m];          // permutation vector
 
 	Gen_rand_mat(m,n,A);             // Randomize elements of orig. matrix
 
 	////////// Debug mode //////////
 	#ifdef DEBUG
 	double *OA = new double[m*n];
-	cblas_dcopy(m*n,A,1,OA,1);
+	cblas_dcopy(m*n, A, 1, OA, 1);
 	double *U = new double[n*n];
 	#endif
 	////////// Debug mode //////////
 
-	double timer = omp_get_wtime();
+	double timer = omp_get_wtime();   // Timer start
 
 	#pragma omp parallel
 	{
@@ -90,19 +90,23 @@ int main(const int argc, const char **argv)
 						piv[k] += i;
 				}
 
-				#pragma omp task depend(inout: A[0:m*i]) depend(in: piv[i:ib])
+				// Apply interchanges to columns 0:i
+				#pragma taskloop
+				for (int k=0; k<i; k+=nb)
 				{
-					#ifdef TRACE
-					trace_cpu_start();
-					trace_label("Aqua", "dlaswp1");
-					#endif
+					#pragma omp task depend(inout: A[k:m*nb]) depend(in: piv[i:ib])
+					{
+						#ifdef TRACE
+						trace_cpu_start();
+						trace_label("Aqua", "dlaswp1");
+						#endif
 
-					// Apply interchanges to columns 0:i
-					assert(0 == LAPACKE_dlaswp(MKL_COL_MAJOR, i, A, m, i+1, i+ib, piv, 1));
+						assert(0 == LAPACKE_dlaswp(MKL_COL_MAJOR, nb, A+(k*m), m, i+1, i+ib, piv, 1));
 
-					#ifdef TRACE
-					trace_cpu_stop("Aqua");
-					#endif
+						#ifdef TRACE
+						trace_cpu_stop("Aqua");
+						#endif
+					}
 				}
 
 				if (i+ib < n)
@@ -161,10 +165,10 @@ int main(const int argc, const char **argv)
 					} // End of j-loop
 				} // End of if
 			} // End of i-loop
-		} // End of Single
-	} // End of Parallel
+		} // End of master
+	} // End of parallel
 
-	timer = omp_get_wtime() - timer;
+	timer = omp_get_wtime() - timer;   // Timer stop
 
 	cout << "m = " << m << ", n = " << n << ", time = " << timer << endl;
 
