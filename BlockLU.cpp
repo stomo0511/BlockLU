@@ -27,11 +27,22 @@ void Gen_rand_mat(const int m, const int n, double *A)
 		A[i] = 1.0 - 2*(double)rand() / RAND_MAX;
 }
 
+// Show matrix elements
+void Show_mat(const int m, const int n, double *A)
+{
+	for (int i=0; i<m; i++)
+	{
+		for (int j=0; j<n; j++)
+			cout << A[i+j*m] << ", ";
+		cout << endl;
+	}
+}
+
 // Debug mode
-#define DEBUG
+//#define DEBUG
 
 // Trace mode
-#define TRACE
+//#define TRACE
 
 #ifdef TRACE
 extern void trace_cpu_start();
@@ -65,7 +76,8 @@ int main(const int argc, const char **argv)
 
 	double timer = omp_get_wtime();
 
-	for (int i=0; i<n; i+=nb)
+//	for (int i=0; i<n; i+=nb)
+	for (int i=0; i<nb; i+=nb)
 	{
 		int ib = min(n-i,nb);
 
@@ -156,6 +168,8 @@ int main(const int argc, const char **argv)
 	timer = omp_get_wtime() - timer;
 
 	cout << "m = " << m << ", n = " << n << ", time = " << timer << endl;
+
+	Show_mat(m,n,A);
 
 	////////// Debug mode //////////
 	#ifdef DEBUG
