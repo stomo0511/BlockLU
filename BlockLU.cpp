@@ -73,7 +73,7 @@ int main(const int argc, const char **argv)
 			{
 				int ib = min(n-i,nb);
 
-				#pragma omp task depend(inout: A[i*m:m*ib]) depend(out: piv[i:ib])
+				#pragma omp task depend(inout: A[i*m:m*ib]) depend(out: piv[i:ib]) priority(10)
 				{
 					#ifdef TRACE
 					trace_cpu_start();
@@ -114,7 +114,7 @@ int main(const int argc, const char **argv)
 					{
 						int jb = min(n-j,nb);
 
-						#pragma omp task depend(in: piv[i:ib], A[i*m:m*ib]) depend(inout: A[j*m:m*jb])
+						#pragma omp task depend(in: piv[i:ib], A[i*m:m*ib]) depend(inout: A[j*m:m*jb]) priority(3)
 						{
 							#ifdef TRACE
 							trace_cpu_start();
