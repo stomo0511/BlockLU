@@ -107,7 +107,6 @@ int main(const int argc, const char **argv)
 				}
 
 				// Apply interchanges to columns 0:i
-				#pragma taskloop
 				for (int k=0; k<i; k+=nb)
 				{
 					#pragma omp task depend(inout: A[k:m*nb]) depend(in: piv[i:ib])
