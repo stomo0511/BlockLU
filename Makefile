@@ -1,6 +1,6 @@
 CXX = /usr/local/bin/g++-9
 CXXFLAGS = -m64 -fopenmp -O2
-LDFLAGS = -lpthread
+LDFLAGS = -lpthread -lm -ldl
 
 MKL_ROOT =  /opt/intel/compilers_and_libraries/mac/mkl
 MKL_INC_DIR = $(MKL_ROOT)/include
