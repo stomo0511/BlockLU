@@ -78,7 +78,7 @@ int main(const int argc, const char **argv)
 	double timer = omp_get_wtime();
 
 //	for (int i=0; i<n; i+=nb)
-	for (int i=0; i<2*nb; i+=nb)
+	for (int i=0; i<10*nb; i+=nb)
 	{
 		int ib = min(n-i,nb);
 
