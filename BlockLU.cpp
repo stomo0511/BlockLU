@@ -43,7 +43,7 @@ void Show_mat(const int m, const int n, double *A)
 #define DEBUG
 
 // Trace mode
-//#define TRACE
+#define TRACE
 
 #ifdef TRACE
 extern void trace_cpu_start();
@@ -54,16 +54,13 @@ extern void trace_label(const char *color, const char *label);
 int main(const int argc, const char **argv)
 {
 	// Usage "a.out [size of matrix: m n ] [block width]"
-//	assert(argc > 3);
-	assert(argc > 4);
+	assert(argc > 3);
 
 	const int m = atoi(argv[1]);     // # rows
 	const int n = atoi(argv[2]);     // # columns
 	const int nb = atoi(argv[3]);    // Block size
-	const int lc = atoi(argv[4]);    // loop count   NEWNEWNEW
 	assert(m >= n);
 	assert(nb <= n);
-	assert(lc <= n/nb);
 
 	double *A = new double [m*n];  // Original matrix
 	int *piv = new int [m];          // permutation vector
@@ -84,8 +81,7 @@ int main(const int argc, const char **argv)
 	{
 		#pragma omp single
 		{
-//			for (int i=0; i<n; i+=nb)
-			for (int i=0; i<lc*nb; i+=nb)
+			for (int i=0; i<n; i+=nb)
 			{
 				int ib = min(n-i,nb);
 
@@ -132,6 +128,11 @@ int main(const int argc, const char **argv)
 
 						#pragma omp task depend(in: piv[i:ib], A[i*m:m*ib]) depend(inout: A[j*m:m*jb])
 						{
+							#ifdef TRACE
+							trace_cpu_start();
+							trace_label("Blue", "update");
+							#endif
+
 							// Apply interchanges to columns i+ib:n-1
 							assert(0 == LAPACKE_dlaswp(MKL_COL_MAJOR, jb, A+(j*m), m, i+1, i+ib, piv, 1));
 
@@ -144,6 +145,10 @@ int main(const int argc, const char **argv)
 								cblas_dgemm(CblasColMajor, CblasNoTrans, CblasNoTrans,
 										m-i-ib, jb, ib, -1.0, A+(i+ib+i*m), m, A+(i+j*m), m, 1.0, A+(i+ib+j*m), m);
 							}
+
+							#ifdef TRACE
+							trace_cpu_stop("Blue");
+							#endif
 						}
 					} // End of j-loop
 				} // End of if
