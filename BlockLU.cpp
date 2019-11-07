@@ -54,13 +54,16 @@ extern void trace_label(const char *color, const char *label);
 int main(const int argc, const char **argv)
 {
 	// Usage "a.out [size of matrix: m n ] [block width]"
-	assert(argc > 3);
+//	assert(argc > 3);
+	assert(argc > 4);
 
 	const int m = atoi(argv[1]);     // # rows
 	const int n = atoi(argv[2]);     // # columns
 	const int nb = atoi(argv[3]);    // Block size
+	const int lc = atoi(argv[4]);    // loop count   NEWNEWNEW
 	assert(m >= n);
 	assert(nb <= n);
+	assert(lc <= n/nb);
 
 	double *A = new double [m*n];  // Original matrix
 	int *piv = new int [m];          // permutation vector
@@ -82,7 +85,7 @@ int main(const int argc, const char **argv)
 		#pragma omp single
 		{
 //			for (int i=0; i<n; i+=nb)
-			for (int i=0; i<16*nb; i+=nb)
+			for (int i=0; i<lc*nb; i+=nb)
 			{
 				int ib = min(n-i,nb);
 
