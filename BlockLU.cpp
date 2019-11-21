@@ -31,7 +31,7 @@ void Gen_rand_mat(const int m, const int n, double *A)
 #define DEBUG
 
 // Trace mode
-#define TRACE
+//#define TRACE
 
 #ifdef TRACE
 extern void trace_cpu_start();
@@ -147,7 +147,6 @@ int main(const int argc, const char **argv)
 	timer = omp_get_wtime() - timer;   // Timer stop
 
 	cout << "m = " << m << ", n = " << n << ", time = " << timer << endl;
-//	Show_mat(m,n,A);
 
 	////////// Debug mode //////////
 	#ifdef DEBUG
