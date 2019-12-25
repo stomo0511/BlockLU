@@ -43,7 +43,7 @@ void Show_mat(const int m, const int n, double *A)
 #define DEBUG
 
 // Trace mode
-#define TRACE
+//#define TRACE
 
 #ifdef TRACE
 extern void trace_cpu_start();

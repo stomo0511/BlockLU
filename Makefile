@@ -7,8 +7,8 @@ MKL_INC_DIR = $(MKL_ROOT)/include
 MKL_LIB_DIR = $(MKL_ROOT)/lib
 MKL_LIBS = -lmkl_intel_lp64 -lmkl_sequential -lmkl_core 
 
-#OBJS =		BlockLU.o
-OBJS =		BlockLU.o trace.o
+OBJS =		BlockLU.o
+#OBJS =		BlockLU.o trace.o
 
 TARGET =	BlockLU
 
@@ -25,7 +25,6 @@ $(TARGET):	$(OBJS)
 
 trace.o: trace.c
 	$(CXX) -O2 -c -o $@ $<
->>>>>>> refs/heads/gitmaster
 
 clean:
 	rm -f $(OBJS) $(TARGET)
