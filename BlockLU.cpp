@@ -30,13 +30,22 @@ void Gen_rand_mat(const int m, const int n, double *A)
 // Show matrix
 void Show_mat(const int m, const int n, double *A)
 {
-	cout.setf(ios::scientific);
+//	cout.setf(ios::scientific);
 	for (int i=0; i<m; i++) {
 		for (int j=0; j<n; j++)
-			cout << showpos << setprecision(4) << A[i + j*m] << ", ";
+			cout << A[i + j*m] << ", ";
+//			cout << showpos << setprecision(4) << A[i + j*m] << ", ";
 		cout << endl;
 	}
 	cout << endl;
+}
+
+// Show vector
+void Show_vec(const int m, int *a)
+{
+	for (int i=0; i<m; i++)
+		cout << a[i] << ", ";
+	cout << endl << endl;;
 }
 
 // Debug mode
@@ -159,7 +168,6 @@ int main(const int argc, const char **argv)
 	timer = omp_get_wtime() - timer;   // Timer stop
 
 	cout << "m = " << m << ", n = " << n << ", time = " << timer << endl;
-//	Show_mat(m,n,A);
 
 	////////// Debug mode //////////
 	#ifdef DEBUG
