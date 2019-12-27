@@ -93,7 +93,7 @@ int main(const int argc, const char **argv)
 				// Apply interchanges to columns 0:i
 				for (int k=0; k<i; k+=nb)
 				{
-					#pragma omp task depend(inout: A[k:m*nb]) depend(in: piv[i:ib])
+					#pragma omp task depend(inout: A[k*m:m*nb]) depend(in: piv[i:ib])
 					{
 						#ifdef TRACE
 						trace_cpu_start();
@@ -141,7 +141,7 @@ int main(const int argc, const char **argv)
 					} // End of j-loop
 				} // End of if
 			} // End of i-loop
-		} // End of master
+		} // End of single
 	} // End of parallel
 
 	timer = omp_get_wtime() - timer;   // Timer stop
