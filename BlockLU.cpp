@@ -55,15 +55,12 @@ int main(const int argc, const char **argv)
 {
 	// Usage "a.out [size of matrix: m n ] [block width]"
 	assert(argc > 3);
-//	assert(argc > 4);
 
 	const int m = atoi(argv[1]);     // # rows
 	const int n = atoi(argv[2]);     // # columns
 	const int nb = atoi(argv[3]);    // Block size
-//	const int lc = atoi(argv[4]);    // loop count
 	assert(m >= n);
 	assert(nb <= n);
-//	assert(lc <= n/nb);
 
 	double *A = new double[m*n];   // Original matrix
 	int *piv = new int[m];           // permutation vector
